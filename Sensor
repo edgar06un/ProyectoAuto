@@ -1,0 +1,57 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/tm4c1294ncpdt.h"
+
+uint32_t i, cuenta, distancia;
+
+int main(void) {
+    SYSCTL_RCGCGPIO_R = 0x220; // Habilita relojes de los puertos N y F
+    i = SYSCTL_RCGCGPIO_R;
+
+    // Configuracion del puerto N (Leds)
+    // GPIO_PORTN_DIR_R |= 0B00000011; // Establece el pin 0 como salida
+    // GPIO_PORTN_DEN_R |= 0B00000011; // Habilita el pin 0 para uso digital
+
+    // Configuracion del puerto F (Leds)
+    GPIO_PORTF_AHB_DIR_R |= 0B00010001; // Establece el pin 0 y 4 como salidas
+    GPIO_PORTF_AHB_DEN_R |=  0B00010001; // Habilita el pin 0 para uso digital
+
+    // Configuracion del puerto K para los LEDs
+    GPIO_PORTK_DIR_R |= 0B000010000; // Pines 0-3 como salidas
+    GPIO_PORTK_DIR_R &= ~0B00100000;
+    GPIO_PORTK_DEN_R |= 0x30; // Habilitar los pines 0-3 como salidas digitales
+    GPIO_PORTK_IM_R |= 0x20;
+    GPIO_PORTK_IS_R &= ~0X20; //DETECTA FLANCO
+    GPIO_PORTK_IBE_R &= ~0X20;
+    GPIO_PORTK_IEV_R |= 0X20; // FLANCO DE SUBIDA
+    GPIO_PORTK_ICR_R = 0X20; // LIMPIA INTERRUPCIONES
+
+    NVIC_EN1_R = 1 << (52 - 32);
+
+    // Apagar LEDS
+    // GPIO_PORTN_DATA_R = 0;
+    GPIO_PORTF_AHB_DATA_R = 0;
+
+    // Trigger en bajo
+    GPIO_PORTK_DATA_R &= ~0B00010000;
+
+    while (1) {
+        GPIO_PORTF_AHB_DATA_R ^= 0x01;
+        SysCtlDelay(266666);
+        // Si no hay rebote se queda en el while
+
+        // Trigger
+        GPIO_PORTK_DATA_R |= 0B00010000;
+        SysCtlDelay(100);
+        GPIO_PORTK_DATA_R &= ~0B00010000;
+    }
+}
+
+void INT_ECHO(void) {
+    cuenta = 0;
+    while ((GPIO_PORTK_DATA_R & 0B00100000) == 0x20 && cuenta < 0xFFFF) {
+        cuenta++;
+        distancia = cuenta / 24;
+    }
+    GPIO_PORTK_ICR_R = 0X20; // LIMPIA INTERRUPCIONES
+}
