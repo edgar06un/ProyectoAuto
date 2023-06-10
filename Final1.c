@@ -68,37 +68,47 @@ int main(void) {
 
     while (1) {
         SysCtlDelay(266666);
-        // Lectura sensor ultrasonico:
+        // Si no hay rebote se queda en el while
+        // Trigger
         GPIO_PORTK_DATA_R |= 0B00010000;
         SysCtlDelay(100);
         GPIO_PORTK_DATA_R &= ~0B00010000;
         //MOTORES
-        TIMER3_TAMATCHR_R = 0x04b0; //CT a 10%
 
-        if (distancia < 100) {
-            TIMER3_TAMATCHR_R = 0x04b0; // 100% (ciclo de trabajo reducido)
-           } else if (distancia < 80) {
-            TIMER3_TAMATCHR_R = 0x1b58; // 88%
-           } else if (distancia < 60) {
-            TIMER3_TAMATCHR_R = 0x2ee0; // 81%
-           } else if (distancia < 40) {
-               TIMER3_TAMATCHR_R = 0x55f0; // 50%
-           } else if (distancia < 30) {
-               TIMER3_TAMATCHR_R = 0x9470; // 40%
-           } else if (distancia < 20) {
-               TIMER3_TAMATCHR_R = 0xbf68; // 20%
-           } else if (distancia < 10) {
-               TIMER3_TAMATCHR_R = 0xe678; // 10%
-           }
+              /*  if (distancia >= 110) {
+                    TIMER3_TAMATCHR_R = 0xDAC0; // 10%
+                } else if (distancia > 30) {
+                    TIMER3_TAMATCHR_R = 0x7530; // 50%
+                } else if (distancia > 20) {
+                    TIMER3_TAMATCHR_R = 0x4350; // 74%
+                } else if (distancia > 10) {
+                    TIMER3_TAMATCHR_R = 0x05dc; // 80%
+                }*/
+
+               if (distancia >= 100) {
+                            TIMER3_TAMATCHR_R = 0x04b0; // 100% (ciclo de trabajo reducido)
+                           } else if (distancia > 80) {
+                            TIMER3_TAMATCHR_R = 0x1b58; // 88%
+                           } else if (distancia > 60) {
+                            TIMER3_TAMATCHR_R = 0x2ee0; // 81%
+                           } else if (distancia > 40) {
+                               TIMER3_TAMATCHR_R = 0x55f0; // 50%
+                           } else if (distancia > 30) {
+                               TIMER3_TAMATCHR_R = 0x9470; // 40%
+                           } else if (distancia > 20) {
+                               TIMER3_TAMATCHR_R = 0xbf68; // 20%
+                           } else if (distancia > 10) {
+                               TIMER3_TAMATCHR_R = 0xe678; // 10%
+                           }
 
     }
 }
 
-
 void INT_ECHO(void) {
+    cuenta1 = 0;
     while ((GPIO_PORTK_DATA_R & 0B00100000) == 0x20 && cuenta1 < 0xFFFF) {
         cuenta1++;
-        distancia = cuenta1 / 24; //Valor en cm
+        distancia = cuenta1 / 24;
     }
     GPIO_PORTK_ICR_R = 0X20; // LIMPIA INTERRUPCIONES
 }
@@ -108,4 +118,3 @@ void GPIOPortJ_Handler(void){
     cuenta = cuenta +1;
     GPIO_PORTJ_ICR_R = 0x01;
 }
-
