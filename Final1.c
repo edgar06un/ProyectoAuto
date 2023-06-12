@@ -4,7 +4,7 @@
 #include "driverlib/sysctl.h"
 
 
-uint32_t i, cuenta1, distancia,resultado,voltaje,start,NumeroInt;
+uint32_t i, cuenta1, distancia,resultado,voltaje,start, NumeroInt;
 
 
  #define GPIO_PORTJ_DIR_R (*((volatile uint32_t *)0x40060400)) //Registro deDirección PJ
