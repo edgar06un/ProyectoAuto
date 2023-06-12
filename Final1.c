@@ -1,45 +1,30 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include "inc/tm4c1294ncpdt.h"
 #include "driverlib/sysctl.h"
+#include <stdlib.h>
 
 
-uint32_t i, cuenta1, distancia,resultado,voltaje,start, NumeroInt;
-
-
- #define GPIO_PORTJ_DIR_R (*((volatile uint32_t *)0x40060400)) //Registro deDirección PJ
- #define GPIO_PORTJ_DEN_R (*((volatile uint32_t *)0x4006051C)) //Registro dehabilitación PJ
- #define GPIO_PORTJ_PUR_R (*((volatile uint32_t *)0x40060510)) //Registro depull-up PJ
- #define GPIO_PORTJ_DATA_R (*((volatile uint32_t *)0x40060004)) //Registro deDatos J
- #define GPIO_PORTJ_IS_R (*((volatile uint32_t *)0x40060404)) //Registro deconfiguración de detección de nivel o flanco
- #define GPIO_PORTJ_IBE_R (*((volatile uint32_t *)0x40060408)) //Registro deconfiguración de interrupción por ambos flancos
- #define GPIO_PORTJ_IEV_R (*((volatile uint32_t *)0x4006040C)) //Registro deconfiguración de interrupción por un flanco
- #define GPIO_PORTJ_ICR_R (*((volatile uint32_t *)0x4006041C)) //Registro delimpieza de interrupcion de flanco en PJ
- #define GPIO_PORTJ_IM_R (*((volatile uint32_t *)0x40060410)) //Registro demascara de interrupcion PJ
-
+uint32_t i, cuenta1, distancia,NumeroInt,i;
+int resultado,voltaje,start;
 int cuenta=0;
 
 
+
+
 int main(void) {
-    SYSCTL_RCGCGPIO_R = 0x1308; // Habilita relojes de los puertos N y F
+
+
+    SYSCTL_RCGCGPIO_R = 0x1308; // Habilita relojes de los puertos  D
     SYSCTL_RCGCTIMER_R |= 0X08; //HABILITA TIMER 3
-    SYSCTL_RCGCGPIO_R |= 0x00000108; // (a) activa el reloj para el puerto
-    SYSCTL_RCGCGPIO_R |= 0x00000108;
-    SYSCTL_RCGCGPIO_R |= 0x00000010; //Puerto e
-
-    SysCtlClockFreqSet ((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
-               SYSCTL_PLLFREQ1_R = 0x00000004;
-               SYSCTL_PLLFREQ0_R = 0x00800060;
-
-               while ((SYSCTL_PLLSTAT_R & 0X01) == 0); // ESPERA SE ESTABILICE El PLL
+    SYSCTL_RCGCGPIO_R |= 0x00000108; // (a) activa el reloj para el puerto J
+    SYSCTL_RCGCTIMER_R |= 0X01; //Conecta el reloj al bloque de timer 0
 
 
-       //configuracion
-       SYSCTL_RCGCADC_R = 0X1; // habilita reloj en ADC0
-       SYSCTL_RCGCGPIO_R = 0x130D;
-       resultado = 0123;
+    i = SYSCTL_RCGCGPIO_R;
 
-
+    NumeroInt = 0x1234;
 
     // Configuracion del puerto K para sensor ultrasonico
     GPIO_PORTK_DIR_R |= 0B000010000; // Pines 0-3 como salidas
@@ -52,33 +37,18 @@ int main(void) {
     GPIO_PORTK_ICR_R = 0X20; // LIMPIA INTERRUPCIONES
 
 
-    // Configuracion del puerto J para el boton de INICIO
-            GPIO_PORTJ_AHB_DIR_R = 0x0; // Pin 1 como entrada
-                GPIO_PORTJ_AHB_PUR_R |= 0x02; // Habilitar resistencia pull-up en el pin 1
-                GPIO_PORTJ_AHB_IM_R = 0x0;
-                GPIO_PORTJ_AHB_IS_R = 0X0; //DETECTA FLANCO
-                GPIO_PORTJ_AHB_IBE_R = 0X0; // DETECTA 1 FLANCO
-                GPIO_PORTJ_AHB_IEV_R = 0X2; // FLANCO DE SUBIDA
-                GPIO_PORTJ_AHB_ICR_R = 0X2; //LIMPIA INTERRUPCIONES
-                GPIO_PORTJ_AHB_IM_R = 0X02; // HABILITA INTERRUPCIONES
 
-                GPIO_PORTJ_AHB_DEN_R |= 0x02; // Habilitar el pin 1 como entrada digital
-
-
-            //CONFIGURACION DEL PUERTO C
-            GPIO_PORTC_AHB_DIR_R = 0xC0;
-            //GPIO_PORTC_AHB_PUR_R = 0XC0;
-            GPIO_PORTC_AHB_DEN_R = 0XD0;
-            GPIO_PORTC_AHB_DATA_R = 0x00;
-            NVIC_PRI12_R = (NVIC_PRI12_R&0x00FFFFFF)|0x00000000; // (g) prioridad 0
+    NVIC_PRI12_R = (NVIC_PRI12_R&0x00FFFFFF)|0x00000000; // (g) prioridad 0
     NVIC_EN1_R = 0x00080000 | (1 << (52 - 32));//(h) habilita la interrupción 51 en NVIC (Pag. 154)
+
+    NVIC_EN0_R |= 0x100000; //Habilita interrupcion 20 timer 0 sub B
 
     //Configuracion del puerto D para los motores
     GPIO_PORTD_AHB_DEN_R |= 0x10; //BIT 4 DIGITAL
     GPIO_PORTD_AHB_DIR_R |= 0x10; //bit 4 SALIDA
-    GPIO_PORTD_AHB_DATA_R |= 0x00; // SALIDA A 0
-    GPIO_PORTD_AHB_AFSEL_R |= 0x10; //FUNCION ALTERNA EN BIT 4
-    GPIO_PORTD_AHB_PCTL_R |= 0x00030000; //DIRIGIDO A T3CCP0
+    GPIO_PORTD_AHB_DATA_R = 0x00; // SALIDA A 0
+    GPIO_PORTD_AHB_AFSEL_R = 0x10; //FUNCION ALTERNA EN BIT 4
+    GPIO_PORTD_AHB_PCTL_R = 0x00030000; //DIRIGIDO A T3CCP0
 
     //Configuracion timer 3
     TIMER3_CTL_R=0X00000000; //DESHABILITA TIMER EN LA CONFIGURACION
@@ -87,30 +57,36 @@ int main(void) {
     TIMER3_TAPR_R= 0X00; // RELOJ 16 MHZ
     TIMER3_CTL_R |= 0X00000001; //HABILITA TIMER A
 
-    while( (SYSCTL_PRGPIO_R & 0x210) ==0);
+    //Configuracion del puerto N y timer 0
+    GPIO_PORTN_DIR_R = 0x01; //Puerto N salida
+    GPIO_PORTN_DEN_R = 0x1; //Habilita puerto N (PN0)
 
-    //Puerto E para luces
-        GPIO_PORTE_AHB_DIR_R |= 0x02;    // 2) PE1 entrada (analógica)
-        GPIO_PORTE_AHB_AFSEL_R |=  0x02; // 3) Habilita Función Alterna de PE4
-        GPIO_PORTE_AHB_DEN_R = 0x00;    // 4) Deshabilita Función Digital de PE4
-        GPIO_PORTE_AHB_AMSEL_R |= 0x02; // 5) Habilita Función Analógica de PE4
 
-        ////////// APAGA PLL
-        SYSCTL_PLLFREQ1_R = 0x0;
-        SYSCTL_PLLFREQ0_R = 0x0;
-        /////
-        start=0;
-        SYSCTL_RCGCTIMER_R |= 0X08; //HABILITA TIMER 3
+    TIMER0_CTL_R = 0x0; //Apaga timer 0 subtimer B
+    TIMER0_CFG_R = 0x04; //Timer trabaja a 16 bits
+    TIMER0_TBMR_R = 0x012; //Modo periodico y cuenta hacia arriba
+    TIMER0_TBILR_R = 0xf424; // Valor para 1 segundo
+    TIMER0_TBPR_R = 0x0ff; //Prescalador a 256
+    TIMER0_IMR_R = 0x100; //Habilita interrupciones en subtimer B
+    TIMER0_ICR_R = 0x100; //Para limpiar interrupcion subtimer B (Agregando un 1 a un registro revisar datasheet)
+    TIMER0_CTL_R = 0x0100; //Habilita timer0 y subtimer B y empieza a contar.
 
-        i = SYSCTL_RCGCGPIO_R;
 
+    NumeroInt = 0x0;
 
 
     // Trigger en bajo
     GPIO_PORTK_DATA_R &= ~0B00010000;
 
+
+    // Para escribir en el archivo de texto
+      //  FILE* archivo = fopen("archivo.txt", "w");
+        //   if (archivo == NULL) {
+          //     printf("No se pudo abrir el archivo.\n");
+            //   return 1;
+           //}
+
     while (1) {
-        while(start==1){
         SysCtlDelay(266666);
         // Si no hay rebote se queda en el while
         // Trigger
@@ -144,25 +120,24 @@ int main(void) {
                            } else if (distancia > 10) {
                                TIMER3_TAMATCHR_R = 0xe678; // 10%
                            }
-               GPIO_PORTN_DATA_R ^= 0x01;
+
+             GPIO_PORTN_DATA_R ^= 0x01; //Cuenta timer
 
 
-                             /* ADC0_PSSI_R |= 0x08; //inicia conversión en secuanciador 3
-                                  while ((ADC0_ACTSS_R & 0x10000)== 0x10000);
-                                  resultado= ADC0_SSFIFO3_R;
-                                  voltaje=(330*resultado)/4095;
-
-                                  if(voltaje<160){
-                                      GPIO_PORTC_AHB_DATA_R |= 0xC0;
-                                  }
-                                  else{
-                                      GPIO_PORTC_AHB_DATA_R = 0x00;
-                                  }*/
+           /*  if (NumeroInt < 50) {
+                fprintf(archivo, "%d,", NumeroInt);
+                         fflush(archivo);  // Para asegurar que los datos se escriban en el archivo inmediatamente
+             }*/
 
     }
-}
+
+
+   // fclose(archivo);
+
 }
 
+
+//Rutina para sensor de distancia
 void INT_ECHO(void) {
     cuenta1 = 0;
     while ((GPIO_PORTK_DATA_R & 0B00100000) == 0x20 && cuenta1 < 0xFFFF) {
@@ -173,22 +148,11 @@ void INT_ECHO(void) {
 }
 
 
-void IntPJ1(void) {
-    // Pin 4 caused the interrupt
-    if(GPIO_PORTJ_AHB_DATA_R == 0x2){
-        if(start==1){
-            start=0;
-        }
-        else{
-            start=1;
-        }
-    }
-  // Clear the interrupt flag
-  GPIO_PORTJ_AHB_ICR_R = 0x02;
-}
-
-
+//Rutina para timer contador de segundos
 void Timer0SubB(void){
-    TIMER0_ICR_R =0x100;
-    NumeroInt = NumeroInt+1;
+    TIMER0_ICR_R = 0x100; //Limpia interrupciones de subtimer B
+    NumeroInt = NumeroInt +1;
+
 }
+
+
