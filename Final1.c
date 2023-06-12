@@ -21,10 +21,11 @@ int cuenta=0;
 
 
 int main(void) {
-    SYSCTL_RCGCGPIO_R = 0x308; // Habilita relojes de los puertos N y F
+    SYSCTL_RCGCGPIO_R = 0x1308; // Habilita relojes de los puertos N y F
     SYSCTL_RCGCTIMER_R |= 0X08; //HABILITA TIMER 3
     SYSCTL_RCGCGPIO_R |= 0x00000108; // (a) activa el reloj para el puerto
-
+    SYSCTL_RCGCGPIO_R |= 0x00000108;
+    SYSCTL_RCGCGPIO_R |= 0x00000010; //Puerto e
 
     SysCtlClockFreqSet ((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
                SYSCTL_PLLFREQ1_R = 0x00000004;
@@ -75,9 +76,9 @@ int main(void) {
     //Configuracion del puerto D para los motores
     GPIO_PORTD_AHB_DEN_R |= 0x10; //BIT 4 DIGITAL
     GPIO_PORTD_AHB_DIR_R |= 0x10; //bit 4 SALIDA
-    GPIO_PORTD_AHB_DATA_R = 0x00; // SALIDA A 0
-    GPIO_PORTD_AHB_AFSEL_R = 0x10; //FUNCION ALTERNA EN BIT 4
-    GPIO_PORTD_AHB_PCTL_R = 0x00030000; //DIRIGIDO A T3CCP0
+    GPIO_PORTD_AHB_DATA_R |= 0x00; // SALIDA A 0
+    GPIO_PORTD_AHB_AFSEL_R |= 0x10; //FUNCION ALTERNA EN BIT 4
+    GPIO_PORTD_AHB_PCTL_R |= 0x00030000; //DIRIGIDO A T3CCP0
 
     //Configuracion timer 3
     TIMER3_CTL_R=0X00000000; //DESHABILITA TIMER EN LA CONFIGURACION
@@ -86,18 +87,13 @@ int main(void) {
     TIMER3_TAPR_R= 0X00; // RELOJ 16 MHZ
     TIMER3_CTL_R |= 0X00000001; //HABILITA TIMER A
 
-    //configuración de puerto D
-        GPIO_PORTD_AHB_AFSEL_R = 0x1; //FUNCION ALTERNA EN PDO
-        GPIO_PORTD_AHB_DEN_R = 0X0; // SE APAGA FUNCION DIGITAL EN PDO
-        GPIO_PORTD_AHB_AMSEL_R = 0X01; //HABILITA ENTRADA ANALÓGICCA
-        //CONFIGURACION DEL CONVERTIDOR ADCO SECUANCIADOR 3
-        ADC0_SSPRI_R = 0X00123; //SECUENCIADOR 3 ES EL DE MAYOR PRIORIDAD
-        ADC0_ACTSS_R = 0X0; // APAGAA SECUANCIADOR3 PARA CONFIGURARLO
-        ADC0_EMUX_R= 0X0; //DISPARO POR SOFTWARE
-        ADC0_SSMUX3_R= 0X0F;
-        ADC0_SSEMUX3_R =0X0; // ENTRADA A SECUENCIADOR 3 POR EL CANAL 15 (PDO)
-        ADC0_SSCTL3_R= 0X02; // ULTIMO CANAL DE LA CONVERSION, ENTRADA POR PDO, SIN INTERRUPCIONES
-        ADC0_ACTSS_R= 0X08; // HABILITA SECUENCIADOR 3
+    while( (SYSCTL_PRGPIO_R & 0x210) ==0);
+
+    //Puerto E para luces
+        GPIO_PORTE_AHB_DIR_R |= 0x02;    // 2) PE1 entrada (analógica)
+        GPIO_PORTE_AHB_AFSEL_R |=  0x02; // 3) Habilita Función Alterna de PE4
+        GPIO_PORTE_AHB_DEN_R = 0x00;    // 4) Deshabilita Función Digital de PE4
+        GPIO_PORTE_AHB_AMSEL_R |= 0x02; // 5) Habilita Función Analógica de PE4
 
         ////////// APAGA PLL
         SYSCTL_PLLFREQ1_R = 0x0;
@@ -148,9 +144,10 @@ int main(void) {
                            } else if (distancia > 10) {
                                TIMER3_TAMATCHR_R = 0xe678; // 10%
                            }
+               GPIO_PORTN_DATA_R ^= 0x01;
 
 
-                              ADC0_PSSI_R = 0x08; //inicia conversión en secuanciador 3
+                             /* ADC0_PSSI_R |= 0x08; //inicia conversión en secuanciador 3
                                   while ((ADC0_ACTSS_R & 0x10000)== 0x10000);
                                   resultado= ADC0_SSFIFO3_R;
                                   voltaje=(330*resultado)/4095;
@@ -160,7 +157,7 @@ int main(void) {
                                   }
                                   else{
                                       GPIO_PORTC_AHB_DATA_R = 0x00;
-                                  }
+                                  }*/
 
     }
 }
