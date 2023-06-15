@@ -170,7 +170,7 @@ int cuenta=0;
                             TIMER3_TAMATCHR_R = 0x55f0; // 50%
                            } else if (distancia > 60) {
                                TIMER3_TAMATCHR_R = 0x9470; // 40%
-                           } else if (distancia > 20) {
+                           } else if (distancia > 30) {
                                TIMER3_TAMATCHR_R = 0xB860; // 20%
                            }
                GPIO_PORTN_DATA_R ^= 0x01;
