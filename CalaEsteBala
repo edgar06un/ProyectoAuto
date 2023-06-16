@@ -2,9 +2,8 @@
 #include <stdbool.h>
 #include "inc/tm4c1294ncpdt.h"
 #include "driverlib/sysctl.h"
-#include <math.h>
 
-uint32_t l, cuenta1, distancia,resultado,voltaje,start,NumeroInt;
+uint32_t l, cuenta1, distancia ,resultado,voltaje,start,NumeroInt;
 
 //GPS y Bluetooth
 
@@ -22,6 +21,7 @@ int result3;
 int RawMin = 0;
 int RawMax = 4096;
 int i,j;
+float temp2;
 
 //Definicion de funciones
 void Registers_init(void);
@@ -52,22 +52,10 @@ void Bluetooth_Write_String(char *str); // Transmit a string to HC-05 over Tx5 p
 
 int cuenta=0;
 
-//Temperatura++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-#define nivel 0.0008058608
-float temp=0;
-uint32_t result4,r;
-
-#define SYSCTL_PLLFREQ0_PLLPWR  0x00800000  // Valor para encender el PLL
-
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-int main(void) {
-    SYSCTL_RCGCGPIO_R = 0x1308; // Habilita relojes de los puertos N y F
+ int main(void) {
+    SYSCTL_RCGCGPIO_R = 0x1308; // Habilita relojes de los puertos N, K, J, D y C
     SYSCTL_RCGCTIMER_R |= 0X08; //HABILITA TIMER 3
-    SYSCTL_RCGCGPIO_R |= 0x00000108; // (a) activa el reloj para el puerto
-    SYSCTL_RCGCGPIO_R |= 0x00000108;
 
     SysCtlClockFreqSet ((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
                SYSCTL_PLLFREQ1_R = 0x00000004;
@@ -80,7 +68,7 @@ int main(void) {
 
        //configuracion
        SYSCTL_RCGCADC_R = 0X1; // habilita reloj en ADC0
-       SYSCTL_RCGCGPIO_R = 0x130D;
+       SYSCTL_RCGCGPIO_R |= 0x130D;
        resultado = 0123;
 
        //GPS
@@ -143,7 +131,7 @@ int main(void) {
         ADC0_EMUX_R= 0X0; //DISPARO POR SOFTWARE
         ADC0_SSMUX3_R= 0X0F;
         ADC0_SSEMUX3_R =0X0; // ENTRADA A SECUENCIADOR 3 POR EL CANAL 15 (PDO)
-        ADC0_SSCTL3_R= 0X02; // ULTIMO CANAL DE LA CONVERSION, ENTRADA POR PDO, SIN INTERRUPCIONES
+        ADC0_SSCTL3_R= 0X0e0; // ULTIMO CANAL DE LA CONVERSION, ENTRADA POR PDO, SIN INTERRUPCIONES
         ADC0_ACTSS_R= 0X08; // HABILITA SECUENCIADOR 3
 
         ////////// APAGA PLL
@@ -160,46 +148,6 @@ int main(void) {
     // Trigger en bajo
     GPIO_PORTK_DATA_R &= ~0B00010000;
 
-    //Temperatura++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    SYSCTL_RCGCGPIO_R |= 0x210;  // 1) Habilita reloj para Puerto E y K
-        while( (SYSCTL_PRGPIO_R & 0x210) ==0);
-
-        GPIO_PORTE_AHB_DIR_R |= 0x02;    // 2) PE1 entrada (analógica)
-        GPIO_PORTE_AHB_AFSEL_R |=  0x02; // 3) Habilita Función Alterna de PE4
-        GPIO_PORTE_AHB_DEN_R = 0x00;    // 4) Deshabilita Función Digital de PE4
-        GPIO_PORTE_AHB_AMSEL_R |= 0x02; // 5) Habilita Función Analógica de PE4
-
-        GPIO_PORTK_DIR_R |= 0x04;    // 2) Pk2 entrada (analógica)
-        GPIO_PORTK_AFSEL_R |= 0x04; // 3) Habilita Función Alterna de PE4
-        GPIO_PORTK_DEN_R = 0x30;    // 4) Deshabilita Función Digital de PE4
-        GPIO_PORTK_AMSEL_R |= 0x04;
-
-        SYSCTL_RCGCADC_R  = 0x01;   // 6) Habilita reloj para lógica de ADC0
-        while((SYSCTL_PRADC_R&0x01)==0);
-
-        ADC0_PC_R = 0x01;       // 7) Configura para 125Ksamp/s
-        ADC0_SSPRI_R = 0x3210;  // 8) SS0 con la más alta prioridad
-        ADC0_ACTSS_R = 0x0000;  // 9) Deshabilita SS1 antes de cambiar configuración de registros
-        ADC0_EMUX_R = 0x0000;   // 10) Se configura SS1 para iniciar muestreo por software
-        ADC0_SSEMUX0_R = 0x00000001;  // 11)Entradas AIN(16:19)
-        ADC0_SSMUX0_R = 0x00000022; // canal AIN9 (PE4)
-        ADC0_SSCTL0_R = 0x00000E00; // 12) SI: AIN, Habilitación de INR3, Fin de secuencia; No:muestra diferencial
-        ADC0_IM_R = 0x0000;     // 13) Deshabilita interrupciones de SS3
-        ADC0_ACTSS_R |= 0x0001; // 14) Habilita SS1
-
-        ADC0_SAC_R = 0x04;  //Promedia las muestras
-
-        ADC0_SSTSH0_R= 0x0400;//Estabiliza sensor de temperatura
-
-        SYSCTL_PLLFREQ0_R |= SYSCTL_PLLFREQ0_PLLPWR;    // encender PLL
-        while((SYSCTL_PLLSTAT_R&0x01)==0);              // espera a que el PLL fije su frecuencia
-        SYSCTL_PLLFREQ0_R &= ~SYSCTL_PLLFREQ0_PLLPWR;   // apagar PLL
-
-        ADC0_ISC_R = 0x0001;               // Se recomienda Limpia la bandera RIS del ADC0
-
-    //FinTemperatura+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 
     while (1) {
@@ -213,45 +161,54 @@ int main(void) {
             GPIO_PORTK_DATA_R &= ~0B00010000;
         //MOTORES
 
-              /*  if (distancia >= 110) {
+              /*  if ( >= 110) {
                     TIMER3_TAMATCHR_R = 0xDAC0; // 10%
-                } else if (distancia > 30) {
+                } else if ( > 30) {
                     TIMER3_TAMATCHR_R = 0x7530; // 50%
-                } else if (distancia > 20) {
+                } else if ( > 20) {
                     TIMER3_TAMATCHR_R = 0x4350; // 74%
-                } else if (distancia > 10) {
+                } else if ( > 10) {
                     TIMER3_TAMATCHR_R = 0x05dc; // 80%
                 }*/
 
-               if (distancia >= 100) {
+
+
+               if ( distancia>= 200) {
                             TIMER3_TAMATCHR_R = 0x04b0; // 100% (ciclo de trabajo reducido)
-                           } else if (distancia > 80) {
-                            TIMER3_TAMATCHR_R = 0x1b58; // 88%
-                           } else if (distancia > 60) {
+                           } else if (distancia > 150) {
+                            TIMER3_TAMATCHR_R = 0x2ee0; // 88%
+                           } else if (distancia > 110) {
                             TIMER3_TAMATCHR_R = 0x2ee0; // 81%
-                           } else if (distancia > 40) {
+                           } else if (distancia > 80) {
                                TIMER3_TAMATCHR_R = 0x55f0; // 50%
-                           } else if (distancia > 30) {
+                           } else if (distancia > 60) {
                                TIMER3_TAMATCHR_R = 0x9470; // 40%
-                           } else if (distancia > 20 || temp > 120) {
+                           } else if (distancia > 40) {
                                TIMER3_TAMATCHR_R = 0xe678; // 20%
                            } else if (distancia > 10) {
                                TIMER3_TAMATCHR_R = 0xe678; // 10%
                            }
                GPIO_PORTN_DATA_R ^= 0x01;
 
+               ADC0_PSSI_R |= 0x08; //inicia conversión en secuanciador 3
+                             while ((ADC0_ACTSS_R & 0x10000)== 0x10000);
+                             resultado= ADC0_SSFIFO3_R;
+                             voltaje=(330*resultado)/4095;
+                             temp2=107.5-((75*(3.3)*ADC0_SSFIFO3_R)/4096);
+                             if (temp2 > 100){
+                                 TIMER3_TAMATCHR_R = 0xe678; // ciclo de trabajo a 20 %
+                             }
 
-                              ADC0_PSSI_R |= 0x08; //inicia conversión en secuanciador 3
-                                  while ((ADC0_ACTSS_R & 0x10000)== 0x10000);
-                                  resultado= ADC0_SSFIFO3_R;
-                                  voltaje=(330*resultado)/4095;
+                             if(voltaje<160){
+                                 GPIO_PORTC_AHB_DATA_R |= 0xC0;
+                             }
+                             else{
+                                 GPIO_PORTC_AHB_DATA_R = 0x00;
+                             }
 
-                                  if(voltaje<160){
-                                      GPIO_PORTC_AHB_DATA_R |= 0xC0;
-                                  }
-                                  else{
-                                      GPIO_PORTC_AHB_DATA_R = 0x00;
-                                  }
+
+
+
                //GPS++++++++++++++++++++
               for (i = 0; i < sizeof(data)-1 ; i++) {
                   data[i] = UART3Rx(); // Se guarda el valor en el arreglo 'data'
@@ -263,7 +220,7 @@ int main(void) {
                for (i = 0, j = 47; i < sizeof(speed)-1 ; i++, j++) {
                    speed[i] = data[j] ; // Se guarda el valor en el arreglo 'data';
                }
-               for (i = 0, j = 8; i < sizeof(hour)-1 ; i++, j++) {
+               for (i = 0, j = 8; i < sizeof(hour)-1 ; i++, j ++) {
                    hour[i] = data[j] ; // Se guarda el valor en el arreglo 'data';
                }
                DelayMs(1000);
@@ -303,23 +260,6 @@ int main(void) {
                 //Bluetooth_Write_String(vz));
 
                 //FinGPS
-
-                //Temperatura++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-                      //uint32_t result1, result2, result3,i;
-                      ADC0_PSSI_R = 0x01;             // Inicia conversión del SS0
-                      while ((ADC0_RIS_R & 0x01)==0);   // Espera a que SS3 termine conversión (polling)
-                      result4 = (ADC0_SSFIFO0_R & 0xFFF);// Resultado en FIFO3 se asigna a variable "result"
-                      for(i=0;i<5;i++){}
-                      result4 = (ADC0_SSFIFO0_R & 0xFFF);
-                      for(i=0;i<7;i++){}
-                      result4 = (ADC0_SSFIFO0_R & 0xFFF);
-                      temp=137.5-((75*3.3*result3)/4096);
-                      ADC0_ISC_R = 0x0001;              // Limpia la bandera RIS del ADC0
-
-
-                //FinTemperatura+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     }
 }
@@ -475,3 +415,6 @@ void Registers_init(void){
     ADC_init();
     HC05_init();
 }
+
+
+//FINGPS
